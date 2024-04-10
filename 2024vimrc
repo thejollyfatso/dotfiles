@@ -1,0 +1,162 @@
+call plug#begin()
+Plug 'preservim/nerdtree'
+Plug 'dense-analysis/ale'
+Plug 'airblade/vim-gitgutter'
+
+Plug 'morhetz/gruvbox'
+Plug 'adonaldson/vim-tictoc'
+Plug 'trapd00r/neverland-vim-theme'
+Plug 'rose-pine/vim'
+Plug 'pablopunk/sunset.vim'
+Plug 'pineapplegiant/spaceduck'
+Plug 'ajmwagar/vim-deus'
+Plug 'nightsense/strawberry'
+Plug 'donearm/ubaryd'
+Plug 'adigitoleo/vim-mellow'
+Plug 'jssee/vim-cortado'
+Plug 'soft-aesthetic/soft-era-vim'
+Plug 'bluz71/vim-nightfly-colors'
+Plug 'connorholyday/vim-snazzy'
+Plug 'sts10/vim-pink-moon'
+Plug 'rayes0/blossom.vim'
+Plug 'ianfabs/sex.vim'
+Plug 'SWilson4/valerie'
+" Plug 'rodnaph/vim-color-schemes'
+call plug#end()
+
+" ~~~~~~~~~~~~~~
+
+set tabstop=2
+set sw=2
+set autoindent
+set expandtab
+set smarttab
+
+set title
+set number
+set ruler
+set cursorline
+
+set smartcase
+set scrolloff=5
+set sidescrolloff=5
+set display+=lastline
+set wildmenu
+set visualbell
+
+set splitright
+set splitbelow
+
+syntax on
+
+set confirm
+set history=1000
+set nomodeline
+
+let &t_SI = "\e[5 q"
+let &t_EI = "\e[2 q"
+
+colo rosepine
+set t_Co=256
+
+" ~~~~~~~~~~~~~~~~~~~~~~~~
+" terminal auto
+:ter
+:resize 12
+
+" NERDTree auto
+" Start NERDTree. If a file is specified, move the cursor to its window.
+autocmd StdinReadPre * let s:std_in=1
+autocmd VimEnter * NERDTree | if argc() > 0 || exists("s:std_in") | wincmd p | endif
+
+" ~~~~~~~~~~~~~~~~~~~~~~~~
+" closes all of vim if no actual editing is happening, pulled from
+" stackoverflow
+function! IsSideBar(buf_nr)
+  " Returns 1 if the buffer is actual a side bar
+  " - A terminal
+  " - The NERDTree side bar
+  " - The QuickFix window
+  " - The Help window
+  " - The UndoTree side bar
+  " - ...
+  let buf_name = bufname(a:buf_nr)
+  let buf_type = getbufvar(a:buf_nr, '&filetype')
+  let readonly = getbufvar(a:buf_nr, '&readonly')
+
+  let term_buffers = term_list()
+
+  if readonly
+    return 1
+
+  elseif buf_type ==# 'qf'
+    " QuickFix, LocationList:
+    " Not Read Only
+    return 1
+
+  elseif buf_type ==# 'help'
+    " Read Only
+    " Help Window:
+    return 1
+
+  elseif buf_type ==# 'undotree'
+    " Not Read Only
+    return 1
+
+  elseif buf_type ==# 'nerdtree'
+    " Read Only
+    return 1
+
+  elseif index(term_buffers, a:buf_nr) >= 0
+    return 1
+
+  else
+    return 0
+
+  endif
+endfunction
+
+function! GetNumWindows()
+  " Returns the number of window that are not side bars
+  let num_windows = 0
+  for win_nr in range(1, winnr('$'))
+    let buf_nr = winbufnr(win_nr)
+
+    if IsSideBar(buf_nr)
+      continue
+    endif
+
+    let num_windows = num_windows + 1
+  endfor
+
+  return num_windows
+endfunction
+
+function! KillSideBars()
+  let num_windows = GetNumWindows()
+  if num_windows > 0
+    " If there are some non side bar windows do nothing:
+    return
+  endif
+
+  " Delete the terminal buffers that don't correspond to a window
+  let term_buffers = term_list()
+  for buf_nr in term_buffers
+    if len(win_findbuf(buf_nr)) == 0
+      " Exit terminal not associated to a window
+      execute 'bd! ' . buf_nr
+    endif
+  endfor
+
+  let term_buffers = term_list()
+  let buf_nr = bufnr('%')
+  if index(term_buffers, buf_nr) >= 0
+    " Kill the terminal buffer and quit
+    call feedkeys("\<C-w>:bd!\<CR>:quit\<CR>:\<BS>")
+  else
+    " Kill the side bar window
+    call feedkeys(":quit\<CR>:\<BS>")
+  endif
+endfunction
+
+autocmd BufEnter * call KillSideBars()
